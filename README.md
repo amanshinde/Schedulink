@@ -1,6 +1,6 @@
-# SmartMeet - Intelligent Meeting Scheduler
+# Schedulink - Intelligent Meeting Scheduler
 
-SmartMeet is an intelligent meeting scheduling application that finds the optimal meeting times based on participants' availability preferences. The application uses UTC time format consistently across all components to ensure accurate scheduling across different time zones.
+Schedulink is an intelligent meeting scheduling application that finds the optimal meeting times based on participants' availability preferences. The application uses UTC time format consistently across all components to ensure accurate scheduling across different time zones.
 
 ## 🎨 Design Philosophy & Color Palette
 

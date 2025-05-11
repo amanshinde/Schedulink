@@ -159,9 +159,3 @@ This approach creates a sophisticated, future-oriented interface that maintains 
 - See all your scheduled meetings directly in your availability calendar
 - Click on meeting indicators to view detailed information
 - Meetings are displayed in their correct UTC time slots
-
-## 🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.

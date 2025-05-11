@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Schedule - Schedulink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="calendar-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="google-calendar-init.js"></script>
+    <script src="lock-meeting-slots.js"></script>
+    <!-- Google API scripts are now loaded dynamically -->
+    <style>
+        .time-slot {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .time-slot.available {
+            background-color: #34a853;
+        }
+        
+        .time-slot.if-needed {
+            background-color: #fbbc05;
+        }
+        
+        .time-slot.unavailable {
+            background-color: #ea4335;
+        }
+        
+        .time-slot:hover {
+            opacity: 0.8;
+        }
+        
+        .calendar-grid {
+            overflow-x: auto;
+        }
+        
+        .calendar-sync {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .calendar-sync button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Meeting indicator styles */
+        #meeting-indicators {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .meeting-indicator {
+            pointer-events: auto;
+            transition: all 0.2s ease;
+        }
+        
+        .meeting-indicator:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            gap: 8px;
+            margin: 0 auto;
+        }
+        
+        .calendar-sync button:hover {
+            background-color: #357abd;
+        }
+        
+        .calendar-sync button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .time-slot.busy {
+            background-color: #ea4335;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1><i class="fas fa-calendar-check"></i> Schedulink</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="schedule.html" class="active">My Schedule</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li class="notification-container">
+                        <a href="#" id="notification-icon" class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notification-badge">0</span>
+                        </a>
+                        <div class="notification-dropdown" id="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button id="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div class="notification-list" id="notification-list">
+                                <!-- Notifications will be added here dynamically -->
+                                <div class="empty-notification">No new notifications</div>
+                            </div>
+                        </div>
+                    </li>
+                    <li><a href="#" class="user-menu" onclick="logout()">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <h2>Set Your Weekly Availability</h2>
+                    <div class="date-range" id="calendar-date-range"></div>
+                </div>
+                
+                <div class="availability-selector">
+                    <div class="availability-option" data-value="available">
+                        <div class="availability-color availability-green"></div>
+                        <span>Available (Preferred)</span>
+                    </div>
+                    <div class="availability-option" data-value="if-needed">
+                        <div class="availability-color availability-yellow"></div>
+                        <span>If Needed</span>
+                    </div>
+                    <div class="availability-option" data-value="unavailable">
+                        <div class="availability-color availability-red"></div>
+                        <span>Unavailable</span>
+                    </div>
+                </div>
+                
+                <p class="instructions">Click on a time slot to cycle through availability options. Your schedule will automatically save as you make changes.</p>
+                
+                <div class="calendar-grid" id="schedule-grid">
+                    <!-- Time column -->
+                    <div class="calendar-cell"></div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Monday</div>
+                        <div class="date-display" data-day="monday"></div>
+                    </div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Tuesday</div>
+                        <div class="date-display" data-day="tuesday"></div>
+                    </div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Wednesday</div>
+                        <div class="date-display" data-day="wednesday"></div>
+                    </div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Thursday</div>
+                        <div class="date-display" data-day="thursday"></div>
+                    </div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Friday</div>
+                        <div class="date-display" data-day="friday"></div>
+                    </div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Saturday</div>
+                        <div class="date-display" data-day="saturday"></div>
+                    </div>
+                    <div class="calendar-cell calendar-day">
+                        <div class="day-name">Sunday</div>
+                        <div class="date-display" data-day="sunday"></div>
+                    </div>
+                    
+                    <!-- 9:00 UTC row -->
+                    <div class="calendar-cell calendar-time">09:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="9:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="9:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="9:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="9:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="9:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="9:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="9:00"></div>
+                    
+                    <!-- 10:00 UTC row -->
+                    <div class="calendar-cell calendar-time">10:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="10:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="10:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="10:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="10:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="10:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="10:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="10:00"></div>
+                    
+                    <!-- 11:00 UTC row -->
+                    <div class="calendar-cell calendar-time">11:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="11:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="11:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="11:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="11:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="11:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="11:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="11:00"></div>
+                    
+                    <!-- 12:00 UTC row -->
+                    <div class="calendar-cell calendar-time">12:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="12:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="12:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="12:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="12:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="12:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="12:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="12:00"></div>
+                    
+                    <!-- 13:00 UTC row -->
+                    <div class="calendar-cell calendar-time">13:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="13:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="13:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="13:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="13:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="13:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="13:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="13:00"></div>
+                    
+                    <!-- 14:00 UTC row -->
+                    <div class="calendar-cell calendar-time">14:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="14:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="14:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="14:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="14:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="14:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="14:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="14:00"></div>
+                    
+                    <!-- 15:00 UTC row -->
+                    <div class="calendar-cell calendar-time">15:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="15:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="15:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="15:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="15:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="15:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="15:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="15:00"></div>
+                    
+                    <!-- 16:00 UTC row -->
+                    <div class="calendar-cell calendar-time">16:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="16:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="16:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="16:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="16:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="16:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="16:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="16:00"></div>
+                    
+                    <!-- 17:00 UTC row -->
+                    <div class="calendar-cell calendar-time">17:00 UTC</div>
+                    <div class="calendar-cell time-slot" data-day="monday" data-time="17:00"></div>
+                    <div class="calendar-cell time-slot" data-day="tuesday" data-time="17:00"></div>
+                    <div class="calendar-cell time-slot" data-day="wednesday" data-time="17:00"></div>
+                    <div class="calendar-cell time-slot" data-day="thursday" data-time="17:00"></div>
+                    <div class="calendar-cell time-slot" data-day="friday" data-time="17:00"></div>
+                    <div class="calendar-cell time-slot" data-day="saturday" data-time="17:00"></div>
+                    <div class="calendar-cell time-slot" data-day="sunday" data-time="17:00"></div>
+                </div>
+                
+                <div class="calendar-sync">
+                    <button id="sync-calendar" class="btn">
+                        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" alt="Calendar" width="24" height="24">
+                        Sync with Google Calendar
+                    </button>
+                </div>
+                
+                <div style="margin-top: 2rem; text-align: center;">
+                    <button id="save-schedule" class="btn btn-primary">Save Schedule</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Schedulink. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+    <script>
+        // Initialize the schedule grid
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize variables
+            let selectedAvailability = 'available';
+            let selectedParticipants = [];
+            let selectedDateTime = null;
+            let saveTimeout;
+            let isSaving = false;
+            
+            // Set initial visual state of availability options
+            document.querySelectorAll('.availability-option').forEach(option => {
+                option.style.opacity = option.dataset.value === selectedAvailability ? '1' : '0.7';
+            });
+            
+            // Get all time slots
+            const scheduleGrid = document.getElementById('schedule-grid');
+            scheduleGrid.style.opacity = '0.6';
+            scheduleGrid.style.pointerEvents = 'none';
+            
+            // Handle availability option selection
+            document.querySelectorAll('.availability-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    selectedAvailability = this.dataset.value;
+                    
+                    // Update visual selection
+                    document.querySelectorAll('.availability-option').forEach(opt => {
+                        opt.style.opacity = opt === this ? '1' : '0.7';
+                    });
+                });
+            });
+            
+            // Handle time slot clicks
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    // Get current state
+                    const currentClass = this.classList.contains('available') ? 'available' :
+                                        this.classList.contains('if-needed') ? 'if-needed' :
+                                        this.classList.contains('unavailable') ? 'unavailable' : null;
+                    
+                    // Remove all availability classes
+                    ['available', 'if-needed', 'unavailable'].forEach(cls => {
+                        this.classList.remove(cls);
+                    });
+                    
+                    // Cycle through states
+                    let newClass;
+                    if (!currentClass || currentClass === 'unavailable') {
+                        newClass = 'available';
+                    } else if (currentClass === 'available') {
+                        newClass = 'if-needed';
+                    } else {
+                        newClass = 'unavailable';
+                    }
+                    
+                    // Add new class
+                    this.classList.add(newClass);
+                    
+                    // Auto-save after changes
+                    autoSave();
+                });
+            });
+            
+            // Set initial state for time slots
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.add('unavailable');
+            });
+            
+            // Auto-save with debouncing
+            function autoSave() {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveSchedule(true);
+                }, 1000); // Wait 1 second after last change before saving
+            }
+            
+            // Save schedule
+            async function saveSchedule(isAutoSave = false) {
+                if (isSaving) return; // Prevent multiple simultaneous saves
+                
+                isSaving = true;
+                const saveButton = document.getElementById('save-schedule');
+                const originalText = saveButton.textContent;
+                saveButton.textContent = 'Saving...';
+                
+                try {
+                    const schedule = {};
+                    
+                    document.querySelectorAll('.time-slot').forEach(slot => {
+                        const day = slot.dataset.day;
+                        const time = slot.dataset.time;
+                        
+                        if (!schedule[day]) {
+                            schedule[day] = {};
+                        }
+                        
+                        // Get the availability status
+                        let status = slot.classList.contains('available') ? 'available' :
+                                   slot.classList.contains('if-needed') ? 'if-needed' :
+                                   slot.classList.contains('unavailable') ? 'unavailable' : null;
+                        
+                        // Check if this slot has an event source (e.g., Google Calendar)
+                        const eventSource = slot.getAttribute('data-event-source') || '';
+                        
+                        // Store as an object with status and eventSource
+                        schedule[day][time] = {
+                            status: status,
+                            eventSource: eventSource
+                        };
+                    });
+                    
+                    // Save to localStorage for quick loading
+                    localStorage.setItem('userSchedule', JSON.stringify(schedule));
+                    
+                    // Save to backend
+                    const userStr = localStorage.getItem('user');
+                    console.log('Raw user data from localStorage:', userStr);
+                    const user = JSON.parse(userStr);
+                    if (!user || !user.email) {
+                        throw new Error('User not logged in');
+                    }
+                    
+                    console.log('Saving schedule for user:', user.email);
+                    console.log('Schedule data:', schedule);
+                    
+                    const response = await fetch(`http://localhost:3001/api/schedules/${user.email}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ schedule })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Failed to save schedule:', errorData);
+                        throw new Error(`Failed to save schedule: ${errorData.message || response.statusText}`);
+                    }
+                    
+                    if (!isAutoSave) {
+                        // Show success message
+                        saveButton.textContent = 'Saved!';
+                        saveButton.style.backgroundColor = '#34a853';
+                        setTimeout(() => {
+                            saveButton.textContent = originalText;
+                            saveButton.style.backgroundColor = '';
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error('Error saving schedule:', error);
+                    saveButton.textContent = 'Error Saving';
+                    saveButton.style.backgroundColor = '#ea4335';
+                    setTimeout(() => {
+                        saveButton.textContent = originalText;
+                        saveButton.style.backgroundColor = '';
+                    }, 2000);
+                } finally {
+                    isSaving = false;
+                }
+            }
+            
+            // Load schedule
+            async function loadSchedule() {
+                try {
+                    // Try loading from backend first
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    if (!user || !user.email) {
+                        throw new Error('User not logged in');
+                    }
+                    
+                    const response = await fetch(`http://localhost:3001/api/schedules/${user.email}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    let schedule;
+                    if (response.ok) {
+                        const data = await response.json();
+                        schedule = data.availability;
+                        // Update localStorage with latest data
+                        localStorage.setItem('userSchedule', JSON.stringify(schedule));
+                    } else {
+                        // Fall back to localStorage if backend fails
+                        const savedSchedule = localStorage.getItem('userSchedule');
+                        if (savedSchedule) {
+                            schedule = JSON.parse(savedSchedule);
+                        }
+                    }
+                    
+                    if (schedule) {
+                        Object.entries(schedule).forEach(([day, times]) => {
+                            Object.entries(times).forEach(([time, availabilityData]) => {
+                                const slot = document.querySelector(`.time-slot[data-day="${day}"][data-time="${time}"]`);
+                                
+                                if (slot) {
+                                    // Remove all availability classes first
+                                    ['available', 'if-needed', 'unavailable'].forEach(cls => {
+                                        slot.classList.remove(cls);
+                                    });
+                                    
+                                    // Handle both old format (string) and new format (object)
+                                    let status, eventSource;
+                                    
+                                    if (typeof availabilityData === 'object' && availabilityData !== null) {
+                                        // New format: { status: 'unavailable', eventSource: 'google-calendar' }
+                                        status = availabilityData.status;
+                                        eventSource = availabilityData.eventSource;
+                                    } else {
+                                        // Old format: 'unavailable'
+                                        status = availabilityData;
+                                        eventSource = '';
+                                    }
+                                    
+                                    // Apply the status class
+                                    if (status) {
+                                        slot.classList.add(status);
+                                    }
+                                    
+                                    // Set event source attribute if present
+                                    if (eventSource) {
+                                        slot.setAttribute('data-event-source', eventSource);
+                                        
+                                        // Apply special styling for Google Calendar events
+                                        if (eventSource === 'google-calendar') {
+                                            console.log(`Restoring Google Calendar event at ${day} ${time}`);
+                                            
+                                            // For Google Calendar events, always ensure the status is 'unavailable'
+                                            // regardless of what was loaded from the data
+                                            ['available', 'if-needed'].forEach(cls => {
+                                                slot.classList.remove(cls);
+                                            });
+                                            slot.classList.add('unavailable');
+                                            
+                                            // Add visual indicator that this is from Google Calendar
+                                            slot.style.background = 'linear-gradient(135deg, #ff5252, #ff867f)';
+                                            slot.style.color = 'white';
+                                            slot.style.fontWeight = '500';
+                                            slot.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                            slot.style.border = '1px solid #ff5252';
+                                            slot.style.borderRadius = '4px';
+                                            slot.style.position = 'relative'; // Ensure relative positioning for absolute children
+                                            
+                                            // Add a small calendar icon to indicate Google Calendar source
+                                            // First, check if the icon already exists to avoid duplicates
+                                            let existingIcon = slot.querySelector('.calendar-icon');
+                                            if (!existingIcon) {
+                                                const calendarIcon = document.createElement('div');
+                                                calendarIcon.className = 'calendar-icon'; // Add class for easier identification
+                                                calendarIcon.innerHTML = '📅';
+                                                calendarIcon.style.position = 'absolute';
+                                                calendarIcon.style.top = '2px';
+                                                calendarIcon.style.right = '2px';
+                                                calendarIcon.style.fontSize = '10px';
+                                                slot.appendChild(calendarIcon);
+                                            }
+                                            
+                                            // Make the slot unselectable (since it's unavailable)
+                                            slot.onclick = function(e) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                alert('This time slot is unavailable due to an existing calendar event.');
+                                                return false;
+                                            };
+                                        }
+                                    } else {
+                                        // Clear event source attribute if not present
+                                        slot.removeAttribute('data-event-source');
+                                    }
+                                }
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading schedule:', error);
+                } finally {
+                    // Remove loading state
+                    scheduleGrid.style.opacity = '1';
+                    scheduleGrid.style.pointerEvents = 'auto';
+                }
+            }
+            
+            // Load schedule immediately
+            loadSchedule();
+            
+            // Auto-save functionality removed as per user request
+            
+            // Handle save button click
+            document.getElementById('save-schedule').addEventListener('click', () => saveSchedule(false));
+        });
+    </script>
+</body>
+</html>

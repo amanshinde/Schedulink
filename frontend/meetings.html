@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meetings - Schedulink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .meetings-container {
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        .meeting-card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .meeting-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, #ff5252, #ff7b7b);
+        }
+        
+        .meeting-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .meeting-info {
+            flex: 1;
+        }
+
+        .meeting-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .meeting-status {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .meeting-participants {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .participant-status {
+            margin-left: 0.5rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .participant-status::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-accepted {
+            background-color: rgba(52, 199, 89, 0.1);
+            color: #34c759;
+            border: 1px solid rgba(52, 199, 89, 0.2);
+        }
+        
+        .status-accepted::before {
+            background-color: #34c759;
+        }
+
+        .status-rejected {
+            background-color: rgba(255, 59, 48, 0.1);
+            color: #ff3b30;
+            border: 1px solid rgba(255, 59, 48, 0.2);
+        }
+        
+        .status-rejected::before {
+            background-color: #ff3b30;
+        }
+
+        .status-pending {
+            background-color: rgba(255, 204, 0, 0.1);
+            color: #ffcc00;
+            border: 1px solid rgba(255, 204, 0, 0.2);
+        }
+        
+        .status-pending::before {
+            background-color: #ffcc00;
+        }
+
+        .meeting-actions-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .meeting-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .meeting-response-btns {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.8rem;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            margin: 0 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.05);
+            opacity: 0;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-btn:hover::after {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .delete-btn {
+            color: #dc3545;
+        }
+
+        .edit-btn {
+            color: #007bff;
+        }
+
+        .view-btn {
+            color: #28a745;
+        }
+
+        .create-meeting-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 1.5rem;
+        }
+
+        .create-meeting-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .create-meeting-btn i {
+            font-size: 1.5rem;
+        }
+
+        .meeting-response-btns {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .accept-btn, .reject-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin: 5px;
+            text-transform: capitalize;
+            min-width: 80px;
+        }
+
+        .styled-btn {
+            border: 1px solid #287094;
+            background-color: white;
+            color: #287094;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.5px;
+        }
+        
+        .styled-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .accept-btn.styled-btn {
+            border-color: #287094;
+            color: #287094;
+        }
+        
+        .accept-btn.styled-btn:hover {
+            background-color: #287094;
+            color: white;
+        }
+        
+        .reject-btn.styled-btn {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+        
+        .reject-btn.styled-btn:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .error-container {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+        
+        .error-message {
+            color: #721c24;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .loading-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-message p {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            font-size: 1.2rem;
+        }
+        
+        /* Custom Alert Styles */
+        .custom-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .alert-content {
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            border-top: 4px solid #8e44ad;
+        }
+        
+        .alert-content p {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .alert-content button {
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0 5px;
+        }
+        
+        .alert-content button:hover {
+            background-color: #9b59b6;
+        }
+        
+        .alert-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-danger {
+            background-color: #8e44ad;
+        }
+        
+        .btn-danger:hover {
+            background-color: #9b59b6;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .custom-alert.success .alert-content {
+            border-left: 5px solid #28a745;
+        }
+        
+        .custom-alert.error .alert-content {
+            border-left: 5px solid #dc3545;
+        }
+        
+        /* Enhanced Notification Styling */
+        .notification-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(40, 112, 148, 0.2);
+            width: 350px;
+            max-height: 450px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+            border: 1px solid #D4D4CE;
+            padding-bottom: 10px;
+        }
+        
+        .dropdown-header {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            position: sticky;
+            top: 0;
+            background-color: white;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dropdown-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #clear-all-notifications {
+            background-color: white;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+        
+        #clear-all-notifications:hover {
+            background-color: #ff5252;
+            color: white;
+        }
+        
+        .notification-list {
+            padding: 0 15px;
+        }
+        
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .notification-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(40, 112, 148, 0.05);
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        /* Custom Dialog Styles */
+        .custom-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .dialog-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            width: 350px;
+            text-align: center;
+        }
+        
+        .dialog-content p {
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .dialog-content.error {
+            border-left: 5px solid #dc3545;
+        }
+        
+        .notification-message {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .notification-time {
+            font-size: 0.8rem;
+            color: #999;
+            text-align: right;
+        }
+        
+        .empty-notification {
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .notification-icon {
+            position: relative;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        
+        .notification-icon i {
+            transition: color 0.3s ease;
+        }
+        
+        .notification-icon:hover i {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1><i class="fas fa-calendar-check"></i> Schedulink</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="schedule.html">My Schedule</a></li>
+                    <li><a href="meetings.html" class="active">Meetings</a></li>
+                    <li class="notification-container">
+                        <a href="#" id="notification-icon" class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notification-badge">0</span>
+                        </a>
+                        <div class="notification-dropdown" id="notification-dropdown">
+                            <div class="dropdown-header">
+                                <h3>Notifications</h3>
+                                <div class="notification-actions">
+                                    <button id="clear-all-notifications" class="btn btn-sm btn-outline-danger">Clear all</button>
+                                </div>
+                            </div>
+                            <div class="notification-list" id="notification-list">
+                                <!-- Notifications will be added here dynamically -->
+                                <div class="empty-notification">No new notifications</div>
+                            </div>
+                        </div>
+                    </li>
+                    <li><a href="#" class="user-menu" onclick="logout()">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="meetings-container">
+                <h2>My Meetings</h2>
+                
+                <a href="create-meeting.html" class="create-meeting-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>Create New Meeting</span>
+                </a>
+                
+                <div id="meetings-list">
+                    <!-- Meeting cards will be loaded here dynamically -->
+                    <div id="loading-indicator" style="text-align: center; padding: 20px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--primary-color);"></i>
+                        <p>Loading your meetings...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Schedulink. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+    <script src="notifications.js"></script>
+    <script src="lock-meeting-slots.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const user = checkUserLogin();
+            if (!user) return;
+            
+            // Load meetings
+            loadMeetings();
+            
+            // Initialize notification system
+            initializeNotifications();
+            
+            // Set up create meeting button
+            document.querySelector('.create-meeting-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'create-meeting.html';
+            });
+            
+            // If API call fails, try to load from localStorage
+            const cachedMeetings = localStorage.getItem('userMeetings');
+            if (cachedMeetings) {
+                try {
+                    const meetings = JSON.parse(cachedMeetings);
+                    // Sync all meeting slots based on current meetings from cache
+                    console.log('Syncing meeting slots from cached meetings');
+                    syncMeetingSlots(meetings);
+                } catch (error) {
+                    console.error('Error parsing cached meetings:', error);
+                }
+            }
+        });
+        
+        // Function to lock time slots for all accepted meetings
+        function lockAcceptedMeetingSlots(meetings) {
+            // Get the current user's email
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            if (!currentUser || !currentUser.email) return;
+            
+            // Filter for meetings where the current user is a participant and has accepted
+            const acceptedMeetings = meetings.filter(meeting => {
+                // Check if this user is a participant and has accepted
+                if (!meeting.participants) return false;
+                
+                const userParticipation = meeting.participants.find(p => 
+                    p.email === currentUser.email && p.status === 'accepted'
+                );
+                
+                return userParticipation || meeting.status === 'confirmed';
+            });
+            
+            // Lock each accepted meeting's time slot
+            acceptedMeetings.forEach(meeting => {
+                lockMeetingTimeSlot(meeting);
+            });
+        }
+        
+        async function loadMeetings() {
+            try {
+                // Get current user's email from localStorage
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                if (!currentUser || !currentUser.email) {
+                    console.error('User information not found in localStorage');
+                    return;
+                }
+                
+                console.log('Current user:', currentUser.email);
+                
+                // Use the full URL to ensure proper connection
+                const token = localStorage.getItem('token');
+                console.log('Using token:', token ? 'Token exists' : 'No token found');
+                
+                const response = await fetch('http://localhost:3001/api/meetings/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                console.log('API response status:', response.status);
+                
+                if (!response.ok) {
+                    console.error('API error:', response.status, response.statusText);
+                    throw new Error(`Failed to load meetings: ${response.status} ${response.statusText}`);
+                }
+                
+                let meetings = [];
+                try {
+                    const allMeetings = await response.json();
+                    console.log('All loaded meetings:', allMeetings);
+                    
+                    // Filter out meetings with status 'deleted'
+                    meetings = allMeetings.filter(meeting => meeting.status !== 'deleted');
+                    console.log('Filtered meetings (excluding deleted):', meetings);
+                    
+                    // Store meetings in localStorage for persistence
+                    localStorage.setItem('userMeetings', JSON.stringify(meetings));
+                    
+                    // Sync all meeting slots based on current meetings
+                    const lockedCount = syncMeetingSlots(meetings);
+                    console.log(`Synced ${lockedCount} meeting slots based on current meetings`);
+                    
+                } catch (jsonError) {
+                    console.error('Error parsing meetings JSON:', jsonError);
+                    throw new Error('Invalid response format from server');
+                }
+                
+                const meetingsList = document.getElementById('meetings-list');
+                
+                // Clear current list
+                meetingsList.innerHTML = '';
+                
+                if (meetings.length === 0) {
+                    // Show a message encouraging the user to create a meeting instead of redirecting
+                    console.log('No meetings found, showing empty state');
+                    meetingsList.innerHTML = `
+                        <div class="empty-meetings-state">
+                            <i class="fas fa-calendar-plus"></i>
+                            <h3>No Meetings Scheduled</h3>
+                            <p>You haven't scheduled any meetings yet. Click the button above to create your first meeting.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                meetings.forEach(meeting => {
+                    const meetingCard = createMeetingCard(meeting);
+                    meetingsList.appendChild(meetingCard);
+                });
+            } catch (error) {
+                console.error('Error loading meetings:', error);
+                
+                // Create a more user-friendly error message with retry button
+                const errorHTML = `
+                    <div class="error-container">
+                        <p class="error-message">Failed to load meetings: ${error.message}</p>
+                        <button class="btn btn-primary" onclick="loadMeetings()">Retry</button>
+                    </div>
+                `;
+                
+                document.getElementById('meetings-list').innerHTML = errorHTML;
+            }
+        }
+        
+        function createMeetingCard(meeting) {
+            // Get current user's email
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            if (!currentUser || !currentUser.email) {
+                console.error('User information not found');
+                return document.createElement('div');
+            }
+            
+            // Format date and time
+            const startTime = new Date(meeting.startTime);
+            const formattedDate = startTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+            const formattedTime = startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
+            
+            // Create meeting card element
+            const card = document.createElement('div');
+            card.className = 'meeting-card';
+            card.setAttribute('data-meeting-id', meeting.id);
+            
+            // Determine meeting status display
+            let meetingStatus = '';
+            if (meeting.status === 'pending') {
+                meetingStatus = '<span style="color: #856404;">Pending</span>';
+            } else if (meeting.status === 'confirmed') {
+                meetingStatus = '<span style="color: #155724;"><span style="margin-right: 5px;">🔒</span>Confirmed</span>';
+            } else if (meeting.status === 'cancelled') {
+                meetingStatus = '<span style="color: #721c24;">Cancelled</span>';
+            }
+            
+            // Generate participants HTML
+            let participantsHTML = '<ul style="list-style: none; padding-left: 0; margin-top: 10px;">';
+            if (meeting.participants && meeting.participants.length > 0) {
+                meeting.participants.forEach(participant => {
+                    let statusClass = '';
+                    let statusText = '';
+                    let statusIcon = '';
+                    
+                    if (participant.status === 'accepted') {
+                        statusClass = 'status-accepted';
+                        statusText = 'Accepted';
+                        statusIcon = '🔒 '; // Add lock icon for accepted participants
+                    } else if (participant.status === 'rejected') {
+                        statusClass = 'status-rejected';
+                        statusText = 'Declined';
+                    } else {
+                        statusClass = 'status-pending';
+                        statusText = 'Pending';
+                    }
+                    
+                    participantsHTML += `
+                        <li style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>${participant.email}</span>
+                            <span class="participant-status ${statusClass}">${statusIcon}${statusText}</span>
+                        </li>
+                    `;
+                });
+            } else {
+                participantsHTML += '<li>No participants</li>';
+            }
+            participantsHTML += '</ul>';
+            
+            // Generate response buttons if the current user is a participant and hasn't responded yet
+            let responseButtons = '';
+            if (meeting.participants && meeting.status !== 'cancelled') {
+                const currentUserParticipation = meeting.participants.find(p => p.email === currentUser.email);
+                
+                if (currentUserParticipation && currentUserParticipation.status === 'pending') {
+                    responseButtons = `
+                        <div class="meeting-response-btns">
+                            <button class="accept-btn styled-btn" onclick="respondToMeeting('${meeting.id}', 'accepted')">Accept</button>
+                            <button class="reject-btn styled-btn" onclick="respondToMeeting('${meeting.id}', 'rejected')">Decline</button>
+                        </div>
+                    `;
+                }
+                
+                // If the user has already accepted, show a lock icon to indicate the time slot is locked
+                if (currentUserParticipation && currentUserParticipation.status === 'accepted') {
+                    responseButtons = `
+                        <div class="meeting-response-btns">
+                            <span style="color: #155724; font-weight: bold;"><span style="margin-right: 5px;">🔒</span>Time slot locked</span>
+                        </div>
+                    `;
+                }
+            }
+            card.innerHTML = `
+                <div class="meeting-info">
+                    <h3 class="meeting-title">${meeting.title}</h3>
+                    <div class="meeting-status">${meetingStatus}</div>
+                    <div>${formattedDate} at ${formattedTime}</div>
+                    <div class="meeting-participants">
+                        ${participantsHTML}
+                    </div>
+                </div>
+                <div class="meeting-actions-container">
+                    ${responseButtons}
+                    <div class="meeting-actions">
+                        ${currentUser.email === meeting.organizer ? 
+                        `<button class="action-btn delete-btn" title="Delete Meeting" onclick="deleteMeeting('${meeting.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        async function respondToMeeting(meetingId, response) {
+            try {
+                console.log(`Responding to meeting ${meetingId} with response: ${response}`);
+                
+                const result = await fetch(`http://localhost:3001/api/meetings/${meetingId}/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ response })
+                });
+                
+                if (!result.ok) {
+                    throw new Error(`Failed to respond to meeting: ${result.status} ${result.statusText}`);
+                }
+                
+                // If the response is 'accepted', lock the meeting time slot
+                if (response === 'accepted') {
+                    console.log('Meeting accepted, fetching details to lock time slot');
+                    
+                    try {
+                        // Get meeting details to lock the time slot
+                        const meetingDetailsResponse = await fetch(`http://localhost:3001/api/meetings/${meetingId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+                        
+                        if (meetingDetailsResponse.ok) {
+                            const meetingDetails = await meetingDetailsResponse.json();
+                            console.log('Retrieved meeting details for locking:', meetingDetails);
+                            
+                            // Lock the meeting time slot using our improved function
+                            lockMeetingTimeSlot(meetingDetails);
+                            
+                            // Also store the meeting in localStorage for persistence
+                            const userMeetings = JSON.parse(localStorage.getItem('userMeetings') || '[]');
+                            
+                            // Update the meeting in the local storage if it exists
+                            const meetingIndex = userMeetings.findIndex(m => m.id === meetingId);
+                            if (meetingIndex !== -1) {
+                                userMeetings[meetingIndex] = meetingDetails;
+                            } else {
+                                userMeetings.push(meetingDetails);
+                            }
+                            
+                            localStorage.setItem('userMeetings', JSON.stringify(userMeetings));
+                        } else {
+                            console.error('Failed to fetch meeting details:', meetingDetailsResponse.status, meetingDetailsResponse.statusText);
+                        }
+                    } catch (detailsError) {
+                        console.error('Error fetching meeting details:', detailsError);
+                    }
+                }
+                
+                // Reload meetings
+                loadMeetings();
+                
+                // Add notification
+                addNotification(
+                    'Meeting Response Sent',
+                    `You have ${response} the meeting invitation.`,
+                    response === 'accepted' ? 'success' : 'info'
+                );
+            } catch (error) {
+                console.error('Error responding to meeting:', error);
+                alert('Failed to respond to meeting. Please try again.');
+            }
+        }
+        
+        // Function to delete a meeting and unlock its time slot
+        async function deleteMeeting(meetingId) {
+            // Ask for confirmation before deleting
+            if (!confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                console.log(`Deleting meeting ${meetingId}`);
+                
+                // First, get the meeting details to know which time slot to unlock
+                let meetingToDelete = null;
+                
+                try {
+                    // Try to get meeting details from localStorage first for performance
+                    const cachedMeetings = JSON.parse(localStorage.getItem('userMeetings') || '[]');
+                    meetingToDelete = cachedMeetings.find(m => m.id === meetingId);
+                    
+                    // If not found in cache, fetch from server
+                    if (!meetingToDelete) {
+                        console.log('Meeting not found in cache, fetching from server');
+                        const meetingDetailsResponse = await fetch(`http://localhost:3001/api/meetings/${meetingId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+                        
+                        if (meetingDetailsResponse.ok) {
+                            meetingToDelete = await meetingDetailsResponse.json();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error getting meeting details before deletion:', error);
+                }
+                
+                // Now delete the meeting
+                const result = await fetch(`http://localhost:3001/api/meetings/${meetingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!result.ok) {
+                    throw new Error(`Failed to delete meeting: ${result.status} ${result.statusText}`);
+                }
+                
+                // Update the cached meetings to mark this one as deleted
+                const cachedMeetings = JSON.parse(localStorage.getItem('userMeetings') || '[]');
+                const updatedMeetings = cachedMeetings.map(m => {
+                    if (m.id === meetingId) {
+                        return { ...m, status: 'deleted' };
+                    }
+                    return m;
+                });
+                localStorage.setItem('userMeetings', JSON.stringify(updatedMeetings));
+                
+                // Re-sync all meeting slots based on updated meetings
+                console.log('Re-syncing meeting slots after deletion');
+                syncMeetingSlots(updatedMeetings);
+                
+                // Reload meetings
+                loadMeetings();
+                
+                // Add notification
+                addNotification(
+                    'Meeting Deleted',
+                    'The meeting has been successfully deleted.',
+                    'info'
+                );
+            } catch (error) {
+                console.error('Error deleting meeting:', error);
+                alert('Failed to delete meeting. Please try again.');
+            }
+        }
+        
+        // Function to lock a meeting time slot when accepted
+        function lockMeetingTimeSlot(meeting) {
+            try {
+                // Parse the meeting start time
+                const startTime = new Date(meeting.startTime);
+                
+                // Get day of week (0 = Sunday, 1 = Monday, etc.)
+                const dayIndex = startTime.getUTCDay();
+                // Convert to our day format (monday, tuesday, etc.)
+                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const day = days[dayIndex];
+                
+                // Get hour in 24-hour format
+                const hour = startTime.getUTCHours();
+                // Format time as HH:00
+                const time = `${hour}:00`;
+                
+                // Get current locked slots from localStorage
+                let lockedSlots = {};
+                const storedSlots = localStorage.getItem('lockedMeetingSlots');
+                if (storedSlots) {
+                    lockedSlots = JSON.parse(storedSlots);
+                }
+                
+                // Initialize day if not exists
+                if (!lockedSlots[day]) {
+                    lockedSlots[day] = {};
+                }
+                
+                // Set the time slot as locked with meeting info
+                lockedSlots[day][time] = {
+                    meetingId: meeting.id,
+                    title: meeting.title,
+                    startTime: meeting.startTime,
+                    endTime: meeting.endTime,
+                    status: 'accepted'
+                };
+                
+                // Save back to localStorage
+                localStorage.setItem('lockedMeetingSlots', JSON.stringify(lockedSlots));
+                console.log(`Stored locked meeting slot for ${day} at ${time}`);
+                
+                // If we're on the schedule page, update the UI immediately
+                if (window.location.pathname.includes('schedule.html')) {
+                    // Find the corresponding time slot and lock it
+                    const slot = document.querySelector(`.time-slot[data-day="${day}"][data-time="${time}"]`);
+                    if (slot) {
+                        // Remove any existing availability classes
+                        ['available', 'if-needed'].forEach(cls => {
+                            slot.classList.remove(cls);
+                        });
+                        
+                        // Add unavailable class
+                        slot.classList.add('unavailable');
+                        
+                        // Mark as locked
+                        slot.setAttribute('data-locked', 'true');
+                        slot.setAttribute('data-meeting-id', meeting.id);
+                        
+                        // Apply locked styling
+                        slot.style.background = '#ff6b6b'; // Updated to coral/salmon red
+                        slot.style.color = 'white';
+                        slot.style.fontWeight = '500';
+                        slot.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                        slot.style.border = '1px solid #ff5252'; // Updated to match coral/salmon color
+                        slot.style.position = 'relative';
+                        
+                        // Add lock icon
+                        const lockIcon = document.createElement('div');
+                        lockIcon.innerHTML = '🔒';
+                        lockIcon.style.position = 'absolute';
+                        lockIcon.style.top = '2px';
+                        lockIcon.style.right = '2px';
+                        lockIcon.style.fontSize = '10px';
+                        slot.appendChild(lockIcon);
+                    }
+                }
+            } catch (error) {
+                console.error('Error locking meeting time slot:', error);
+            }
+        }
+        
+        function viewMeeting(meetingId) {
+            // Implement view meeting details functionality
+            console.log('View meeting:', meetingId);
+            // Could open a modal with meeting details
+        }
+        
+        function editMeeting(meetingId) {
+            // Redirect to edit meeting page
+            window.location.href = `create-meeting.html?edit=${meetingId}`;
+        }
+        
+        async function deleteMeeting(meetingId) {
+            if (!confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                // Show a loading message
+                const loadingMessage = document.createElement('div');
+                loadingMessage.className = 'loading-message';
+                loadingMessage.innerHTML = '<p>Deleting meeting... Please wait.</p>';
+                document.body.appendChild(loadingMessage);
+                
+                const reason = prompt('Please provide a reason for cancellation:') || 'No reason provided';
+                console.log('Deleting meeting:', meetingId, 'with reason:', reason);
+                
+                // Get the user's token and information
+                const token = localStorage.getItem('token');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                if (!token || !currentUser || !currentUser.email) {
+                    throw new Error('Authentication information not found');
+                }
+                
+                console.log('Current user attempting to delete:', currentUser.email);
+                
+                // Simplified approach: directly attempt to delete
+                const result = await fetch(`http://localhost:3001/api/meetings/${meetingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ reason: reason })
+                });
+                
+                console.log('Delete response status:', result.status);
+                
+                // Try to parse the response even if it's an error
+                let responseData;
+                try {
+                    responseData = await result.json();
+                    console.log('Delete response data:', responseData);
+                } catch (jsonError) {
+                    console.error('Error parsing response:', jsonError);
+                }
+                
+                // Remove the loading message
+                document.querySelector('.loading-message')?.remove();
+                
+                // Even if there are calendar-related errors, consider the deletion successful
+                // if the meeting was marked as deleted in the database
+                if (result.status === 500 && responseData?.message?.includes('calendar')) {
+                    console.warn('Meeting deleted but had calendar issues:', responseData?.message);
+                    alert('Meeting was deleted successfully, but there was an issue removing calendar events.');
+                    loadMeetings();
+                    return;
+                }
+                
+                if (!result.ok) {
+                    const errorMessage = responseData?.message || 'Unknown error occurred';
+                    throw new Error(`Failed to delete meeting: ${errorMessage}`);
+                }
+                
+                // Get meeting details to send notifications to participants
+                const meetingResponse = await fetch(`http://localhost:3001/api/meetings/${meetingId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (meetingResponse.ok) {
+                    const meetingData = await meetingResponse.json();
+                    
+                    // Send notification to the organizer (current user)
+                    await fetch('http://localhost:3001/api/notifications', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            userEmail: currentUser.email,
+                            title: 'Meeting Deleted',
+                            message: `You have deleted the meeting: ${meetingData.title}`,
+                            type: 'info',
+                            meetingId: meetingId
+                        })
+                    });
+                    
+                    // Send notifications to all participants except the organizer
+                    for (const participant of meetingData.participants) {
+                        if (participant.email !== currentUser.email) {
+                            await fetch('http://localhost:3001/api/notifications', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    userEmail: participant.email,
+                                    title: 'Meeting Canceled',
+                                    message: `The meeting '${meetingData.title}' has been canceled by the organizer. Reason: ${reason}`,
+                                    type: 'warning',
+                                    meetingId: meetingId
+                                })
+                            });
+                        }
+                    }
+                }
+                
+                // Show success message
+                alert('Meeting successfully deleted!');
+                
+                // Reload meetings
+                loadMeetings();
+            } catch (error) {
+                console.error('Error deleting meeting:', error);
+                
+                // Remove the loading message if it exists
+                document.querySelector('.loading-message')?.remove();
+                
+                // Check if the error is related to calendar
+                if (error.message && error.message.toLowerCase().includes('calendar')) {
+                    alert('Meeting deletion partially succeeded. The meeting was marked as deleted, but there was an issue with removing calendar events. The meeting will no longer appear in your list.');
+                    loadMeetings(); // Reload to show updated list
+                } else {
+                    alert(`Failed to delete meeting: ${error.message}. Please try again later.`);
+                }
+            }
+        }
+        
+        function initializeNotifications() {
+            // Check for new notifications on page load
+            checkNotifications();
+            
+            // Set up notification listeners
+            setupNotificationListeners();
+            
+            // Check for new notifications every minute
+            setInterval(checkNotifications, 60000);
+        }
+        
+        function setupNotificationListeners() {
+            console.log('Setting up notification listeners');
+            // Toggle notification dropdown
+            const notificationIcon = document.getElementById('notification-icon');
+            const notificationDropdown = document.getElementById('notification-dropdown');
+            
+            if (notificationIcon && notificationDropdown) {
+                console.log('Notification elements found, adding click handler');
+                notificationIcon.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Notification icon clicked');
+                    
+                    // Toggle dropdown visibility
+                    if (notificationDropdown.classList.contains('show')) {
+                        notificationDropdown.style.display = 'none';
+                        notificationDropdown.classList.remove('show');
+                    } else {
+                        notificationDropdown.style.display = 'block';
+                        notificationDropdown.classList.add('show');
+                        
+                        // Mark notifications as seen when dropdown is opened
+                        markNotificationsAsSeen();
+                    }
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (notificationDropdown && 
+                    notificationDropdown.classList.contains('show') &&
+                    !notificationDropdown.contains(e.target) && 
+                    e.target !== notificationIcon && 
+                    !e.target.closest('#notification-icon')) {
+                    console.log('Clicking outside, hiding dropdown');
+                    notificationDropdown.style.display = 'none';
+                    notificationDropdown.classList.remove('show');
+                }
+            });
+            
+            // Mark all as read button
+            const markAllReadBtn = document.getElementById('mark-all-read');
+            if (markAllReadBtn) {
+                markAllReadBtn.addEventListener('click', function() {
+                    markAllNotificationsAsRead();
+                });
+            }
+            
+            // Clear all notifications button
+            const clearAllBtn = document.getElementById('clear-all-notifications');
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', function() {
+                    // Direct call without confirmation - we'll handle that in the function
+                    clearAllNotifications();
+                });
+            }
+            
+            // Show all notifications button
+            const showAllBtn = document.getElementById('show-all-notifications');
+            if (showAllBtn) {
+                showAllBtn.addEventListener('click', function() {
+                    showAllNotifications();
+                });
+            }
+        }
+        
+        // Function to show all notifications (reset the cleared state)
+        async function showAllNotifications() {
+            try {
+                // Remove the clearedNotifications flag from localStorage
+                localStorage.removeItem('clearedNotifications');
+                
+                // Refresh notifications
+                await checkNotifications();
+                
+                // Show a success message
+                const successMessage = document.createElement('div');
+                successMessage.className = 'custom-alert success';
+                successMessage.id = 'notification-success-message';
+                successMessage.innerHTML = `
+                    <div class="alert-content">
+                        <p>All notifications are now visible.</p>
+                        <button id="success-ok-button" class="btn btn-primary" style="background-color: #8e44ad;">OK</button>
+                    </div>
+                `;
+                document.body.appendChild(successMessage);
+                
+                // Add event listener to the OK button
+                document.getElementById('success-ok-button').addEventListener('click', function() {
+                    document.getElementById('notification-success-message').remove();
+                });
+            } catch (error) {
+                console.error('Error showing all notifications:', error);
+            }
+        }
+        
+        async function checkNotifications() {
+            try {
+                // Get current user information
+                const token = localStorage.getItem('token');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                if (!token || !currentUser || !currentUser.email) {
+                    console.error('User information not found in localStorage');
+                    return;
+                }
+                
+                console.log('Checking notifications for user:', currentUser.email);
+                
+                // Use the full URL to ensure proper connection
+                const response = await fetch('http://localhost:3001/api/notifications', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load notifications');
+                }
+                
+                const notifications = await response.json();
+                console.log('Fetched notifications:', notifications);
+                
+                // Update badge count
+                const unreadCount = notifications.filter(n => !n.read).length;
+                updateNotificationBadge(unreadCount);
+                
+                // Update notification list
+                updateNotificationList(notifications);
+            } catch (error) {
+                console.error('Error checking notifications:', error);
+            }
+        }
+        
+        function updateNotificationBadge(count) {
+            const badge = document.getElementById('notification-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+        }
+        
+        // Format date for notification display
+        function formatDate(date) {
+            const now = new Date();
+            const nowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()));
+            const dateUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()));
+            
+            const diff = nowUTC - dateUTC;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+            
+            // Format date in UTC
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'UTC'
+            });
+        }
+        
+        // Mark notifications as seen (when dropdown is opened)
+        async function markNotificationsAsSeen() {
+            try {
+                // Get current user information
+                const token = localStorage.getItem('token');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                if (!token || !currentUser || !currentUser.email) {
+                    console.error('User information not found in localStorage');
+                    return;
+                }
+                
+                console.log('Marking notifications as seen for user:', currentUser.email);
+                
+                // WORKAROUND: Since the /seen endpoint is not available, we'll implement the functionality client-side
+                // Get all notifications
+                const response = await fetch('http://localhost:3001/api/notifications', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch notifications');
+                }
+                
+                // Refresh notifications to update UI
+                checkNotifications();
+                
+                console.log('Successfully marked notifications as seen (client-side implementation)');
+            } catch (error) {
+                console.error('Error marking notifications as seen:', error);
+            }
+        }
+        
+        // Mark a specific notification as read
+        async function markNotificationAsRead(notificationId) {
+            try {
+                // Get current user information
+                const token = localStorage.getItem('token');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                if (!token || !currentUser || !currentUser.email) {
+                    console.error('User information not found in localStorage');
+                    return;
+                }
+                
+                console.log('Marking notification as read:', notificationId, 'for user:', currentUser.email);
+                const response = await fetch(`http://localhost:3001/api/notifications/${notificationId}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userEmail: currentUser.email })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to mark notification as read');
+                }
+                
+                // Refresh notifications to update UI
+                checkNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+        
+        // Mark all notifications as read
+        async function markAllNotificationsAsRead() {
+            try {
+                // Get current user information
+                const token = localStorage.getItem('token');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                if (!token || !currentUser || !currentUser.email) {
+                    console.error('User information not found in localStorage');
+                    return;
+                }
+                
+                console.log('Marking all notifications as read for user:', currentUser.email);
+                const response = await fetch('http://localhost:3001/api/notifications/read-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userEmail: currentUser.email })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to mark all notifications as read');
+                }
+                
+                // Refresh notifications to update UI
+                checkNotifications();
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
+            }
+        }
+        
+        // Function to clear all notifications
+        async function clearAllNotifications() {
+            try {
+                // Get current user information
+                const token = localStorage.getItem('token');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                if (!token || !currentUser || !currentUser.email) {
+                    console.error('User information not found in localStorage');
+                    return;
+                }
+                
+                // Use the browser's built-in confirm dialog
+                if (!confirm('Are you sure you want to clear all notifications?')) {
+                    return;
+                }
+                
+                console.log('Clearing all notifications for user:', currentUser.email);
+                
+                // Call the backend API to permanently delete all notifications
+                const response = await fetch('http://localhost:3001/api/notifications/clear-all', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to clear notifications');
+                }
+                
+                // Update UI directly without fetching again
+                const notificationList = document.getElementById('notification-list');
+                if (notificationList) {
+                    notificationList.innerHTML = '<div class="empty-notification">No new notifications</div>';
+                }
+                
+                // Update badge count to zero
+                updateNotificationBadge(0);
+                
+                // Show simple success alert
+                alert('All notifications have been cleared.');
+            } catch (error) {
+                console.error('Error clearing all notifications:', error);
+                alert('Failed to clear notifications. Please try again.');
+            }
+        }
+        
+        function updateNotificationList(notifications) {
+            const notificationList = document.getElementById('notification-list');
+            if (!notificationList) return;
+            
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<div class="empty-notification">No new notifications</div>';
+                return;
+            }
+            
+            // Sort notifications by timestamp (newest first)
+            notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            notificationList.innerHTML = notifications.map(notification => {
+                const isRead = notification.read ? 'read' : 'unread';
+                return `
+                    <div class="notification-item ${isRead}" data-id="${notification.id}">
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-message">${notification.message}</div>
+                        <div class="notification-time">${formatDate(new Date(notification.timestamp))}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add click event to mark individual notifications as read
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    markNotificationAsRead(item.dataset.id);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Schedulink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1><i class="fas fa-calendar-check"></i> Schedulink</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="register.html" class="active">Register</a></li>
+                    <li><a href="login.html">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="form-container">
+                <h2 class="form-title">Create Your Account</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input type="password" id="confirm-password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="team">Team/Department (Optional)</label>
+                        <input type="text" id="team" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="divider" style="text-align: center; margin: 15px 0; position: relative;">
+                            <span style="background-color: white; padding: 0 10px; position: relative; z-index: 1;">OR</span>
+                            <hr style="margin-top: -9px; border: none; border-top: 1px solid #ddd;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <a href="/api/auth/google" class="btn btn-google" style="width: 100%; background-color: #4285F4; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" alt="Google logo" style="width: 18px; height: 18px;">
+                            Sign up with Google
+                        </a>
+                    </div>
+                    
+                    <p style="text-align: center;">Already have an account? <a href="login.html">Log In</a></p>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Schedulink. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('register-form');
+            
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                const team = document.getElementById('team').value;
+                
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match!');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('http://localhost:3001/api/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name, email, password, team })
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert('Registration successful! Please login.');
+                        window.location.href = 'login.html';
+                    } else {
+                        alert(data.message || 'Registration failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    alert('An error occurred during registration. Please try again.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

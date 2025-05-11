@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Meeting - Schedulink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .participant-list {
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .participant-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background-color: #f8f9fa;
+            flex: 0 0 auto;
+            min-width: 200px;
+            max-width: calc(50% - 10px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .participant-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            border-color: var(--primary-color);
+        }
+        
+        .participant-item input {
+            margin-right: 0.8rem;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        
+        .participant-name {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .participant-name small {
+            color: #6c757d;
+            font-size: 0.75rem;
+        }
+        
+        .availability-indicator {
+            margin-left: auto;
+            padding-left: 1rem;
+        }
+        
+        .availability-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .availability-dot.available { background-color: #34a853; }
+        .availability-dot.if-needed { background-color: #fbbc05; }
+        .availability-dot.unavailable { background-color: #ea4335; }
+        
+        .availability-summary {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .availability-chart {
+            margin-top: 1rem;
+        }
+        
+        .availability-bar {
+            height: 24px;
+            background-color: #eee;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+        }
+        
+        .bar-segment {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .bar-segment.available { background-color: #34a853; }
+        .bar-segment.if-needed { background-color: #fbbc05; }
+        .bar-segment.unavailable { background-color: #ea4335; }
+        
+        .availability-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+        }
+        
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.4rem;
+        }
+        
+        .legend-dot.available { background-color: #34a853; }
+        .legend-dot.if-needed { background-color: #fbbc05; }
+        .legend-dot.unavailable { background-color: #ea4335; }
+        
+        .suggestion-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .suggestion-score {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+        
+        .score-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .score-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .score-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1><i class="fas fa-calendar-check"></i> Schedulink</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="schedule.html">My Schedule</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li class="notification-container">
+                        <a href="#" id="notification-icon" class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notification-badge">0</span>
+                        </a>
+                        <div class="notification-dropdown" id="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button id="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div class="notification-list" id="notification-list">
+                                <!-- Notifications will be added here dynamically -->
+                                <div class="empty-notification">No new notifications</div>
+                            </div>
+                        </div>
+                    </li>
+                    <li><a href="#" class="user-menu" onclick="logout()">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="form-container" style="max-width: 800px;">
+                <h2 class="form-title">Create a New Meeting</h2>
+                <form id="meeting-form">
+                    <div class="form-group">
+                        <label for="meeting-title">Meeting Title</label>
+                        <input type="text" id="meeting-title" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-description">Description (Optional)</label>
+                        <textarea id="meeting-description" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-date">Meeting Date</label>
+                        <input type="date" id="meeting-date" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-time">Preferred Time</label>
+                        <input type="time" id="meeting-time" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-duration">Duration</label>
+                        <select id="meeting-duration" class="form-control" required>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="90">1.5 hours</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Participants</label>
+                        <div class="participant-list" id="participant-list">
+                            <!-- Participants will be loaded dynamically -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Find Available Times</button>
+                    </div>
+                </form>
+                
+                <!-- Meeting suggestions (initially hidden) -->
+                <div id="meeting-suggestions" style="margin-top: 2rem; display: none;">
+                    <h3>Suggested Meeting Times</h3>
+                    <p>Based on participant availability, here are the best times for your meeting:</p>
+                    
+                    <div id="suggestions-container">
+                        <!-- Suggestions will be added here by JavaScript -->
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <button id="schedule-meeting" class="btn btn-primary">Schedule Meeting</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Schedulink. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+    <script src="notifications.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load participants
+            async function loadParticipants() {
+                try {
+                    const response = await fetch('http://localhost:3001/api/users', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to load participants');
+                    }
+                    
+                    const users = await response.json();
+                    const participantList = document.getElementById('participant-list');
+                    participantList.innerHTML = '';
+                    
+                    // Filter out duplicate users by email
+                    const uniqueEmails = new Set();
+                    const uniqueUsers = users.filter(user => {
+                        if (!user.email || uniqueEmails.has(user.email)) {
+                            console.log('Skipping duplicate or invalid user:', user);
+                            return false;
+                        }
+                        uniqueEmails.add(user.email);
+                        return true;
+                    });
+                    
+                    console.log(`Displaying ${uniqueUsers.length} unique participants out of ${users.length} total`);
+                    
+                    uniqueUsers.forEach(user => {
+                        const participantItem = document.createElement('div');
+                        participantItem.className = 'participant-item';
+                        // Create a shortened display name
+                        const displayName = user.name || user.email.split('@')[0];
+                        const emailDomain = user.email.split('@')[1];
+                        
+                        participantItem.innerHTML = `
+                            <input type="checkbox" name="participant" value="${user.email}" data-name="${user.name}">
+                            <span class="participant-name" title="${user.email}">
+                                ${displayName}
+                                <small>@${emailDomain}</small>
+                            </span>
+                        `;
+                        participantList.appendChild(participantItem);
+                    });
+                } catch (error) {
+                    console.error('Error loading participants:', error);
+                    // Show error message to user
+                    const participantList = document.getElementById('participant-list');
+                    participantList.innerHTML = '<p class="error-message">Failed to load participants. Please try again later.</p>';
+                }
+            }
+            
+            loadParticipants();
+            
+            // Set default date (today)
+            function setDefaultDates() {
+                const defaultDate = new Date();
+                document.getElementById('meeting-date').valueAsDate = defaultDate;
+            }
+            
+            setDefaultDates();
+            
+            // Handle form submission
+            document.getElementById('meeting-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get selected participants
+                const selectedParticipants = [];
+                document.querySelectorAll('input[name="participant"]:checked').forEach(input => {
+                    selectedParticipants.push({
+                        email: input.value,
+                        name: input.dataset.name
+                    });
+                });
+                
+                // Get meeting details
+                const meetingData = {
+                    title: document.getElementById('meeting-title').value,
+                    description: document.getElementById('meeting-description').value,
+                    duration: parseInt(document.getElementById('meeting-duration').value),
+                    meetingDate: document.getElementById('meeting-date').value,
+                    participants: selectedParticipants
+                };
+                
+                // Generate and display meeting suggestions
+                generateMeetingSuggestions(meetingData);
+            });
+            
+            // Function to generate meeting suggestions using the AI-based backend
+            async function generateMeetingSuggestions(meetingData) {
+                // Show loading state
+                const suggestionsContainer = document.getElementById('suggestions-container');
+                suggestionsContainer.innerHTML = '<div class="loading">Finding optimal meeting times...</div>';
+                document.getElementById('meeting-suggestions').style.display = 'block';
+                
+                try {
+                    // Extract only the emails for the API request and remove duplicates
+                    let participantEmails = meetingData.participants.map(p => p.email);
+                    
+                    // Remove duplicate emails
+                    participantEmails = [...new Set(participantEmails)];
+                    
+                    console.log('Participants after removing duplicates:', participantEmails);
+                    
+                    // Prepare data for the API request
+                    const requestData = {
+                        participants: participantEmails,
+                        meetingDate: meetingData.meetingDate,
+                        duration: meetingData.duration
+                    };
+                    
+                    console.log('Sending meeting suggestion request:', requestData);
+                    
+                    // Call the backend API to get AI-based meeting suggestions
+                    const response = await fetch('/api/meetings/suggest', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to get meeting suggestions');
+                    }
+                    
+                    // Get the AI-generated suggestions
+                    const suggestions = await response.json();
+                    console.log('Received meeting suggestions:', suggestions);
+                    
+                    // Check if we got any suggestions
+                    if (!suggestions || suggestions.length === 0) {
+                        console.log('No meeting suggestions returned from API');
+                        suggestionsContainer.innerHTML = `<div class="warning-message">
+                            <p>No suitable meeting times found for the selected date and participants.</p>
+                            <p>Try selecting a different date or different participants.</p>
+                        </div>`;
+                        return;
+                    }
+                    
+                    // Notification functionality will be customized by the user
+                    // No notifications for meeting suggestions generation
+                    
+                    // Display suggestions
+                    const suggestionsContainer = document.getElementById('suggestions-container');
+                    suggestionsContainer.innerHTML = '';
+                    
+                    // Add a heading for the suggestions section
+                    const suggestionsHeading = document.createElement('h3');
+                    suggestionsHeading.className = 'suggestions-heading';
+                    suggestionsHeading.innerHTML = `<i class="fas fa-star"></i> Top ${suggestions.length} AI-Recommended Meeting Times`;
+                    suggestionsContainer.appendChild(suggestionsHeading);
+                
+                    suggestions.forEach((suggestion, index) => {
+                        const scoreClass = suggestion.score >= 0.8 ? 'score-high' : (suggestion.score >= 0.6 ? 'score-medium' : 'score-low');
+                        const scorePercentage = Math.round(suggestion.score * 100);
+                        
+                        // Calculate availability percentages for visualization
+                        const totalParticipants = suggestion.participants.available.length + 
+                                                suggestion.participants.ifNeeded.length + 
+                                                suggestion.participants.unavailable.length;
+                        
+                        const availablePercent = Math.round((suggestion.participants.available.length / totalParticipants) * 100) || 0;
+                        const ifNeededPercent = Math.round((suggestion.participants.ifNeeded.length / totalParticipants) * 100) || 0;
+                        const unavailablePercent = Math.round((suggestion.participants.unavailable.length / totalParticipants) * 100) || 0;
+                        
+                        const suggestionHTML = `
+                            <div class="suggestion-card ${scoreClass}">
+                                <div class="suggestion-header">
+                                    <input type="radio" name="meeting-suggestion" id="suggestion-${index}" value='${JSON.stringify({day: suggestion.date, time: suggestion.startTime})}' ${index === 0 ? 'checked' : ''}>
+                                    <label for="suggestion-${index}">
+                                        <div class="suggestion-time">
+                                            <i class="fas fa-calendar-alt"></i> ${suggestion.date}<br>
+                                            <i class="fas fa-clock"></i> ${suggestion.startTime} - ${suggestion.endTime}
+                                        </div>
+                                        <span class="suggestion-score ${scoreClass}">${scorePercentage}% match</span>
+                                    </label>
+                                </div>
+                                
+                                <div class="availability-bars">
+                                    <div class="availability-bar available" style="width: ${availablePercent}%" title="${suggestion.participants.available.length} available"></div>
+                                    <div class="availability-bar if-needed" style="width: ${ifNeededPercent}%" title="${suggestion.participants.ifNeeded.length} if needed"></div>
+                                    <div class="availability-bar unavailable" style="width: ${unavailablePercent}%" title="${suggestion.participants.unavailable.length} unavailable"></div>
+                                </div>
+                                
+                                <div class="suggestion-details" id="details-${index}">
+                                    <div class="participant-group">
+                                        <h5><i class="fas fa-check-circle" style="color: #28a745;"></i> Available (${suggestion.participants.available.length})</h5>
+                                        <div class="participant-list">${suggestion.participants.available.map(p => `<span class="participant-chip available" data-email="${p.userEmail}">${p.userName || p.userEmail.split('@')[0]}</span>`).join('') || '<span class="no-participants">None</span>'}</div>
+                                    </div>
+                                    
+                                    ${suggestion.participants.ifNeeded.length > 0 ? `
+                                    <div class="participant-group">
+                                        <h5><i class="fas fa-question-circle" style="color: #ffc107;"></i> If Needed (${suggestion.participants.ifNeeded.length})</h5>
+                                        <div class="participant-list">${suggestion.participants.ifNeeded.map(p => `<span class="participant-chip if-needed" data-email="${p.userEmail}">${p.userName || p.userEmail.split('@')[0]}</span>`).join('')}</div>
+                                    </div>` : ''}
+                                    
+                                    ${suggestion.participants.unavailable.length > 0 ? `
+                                    <div class="participant-group">
+                                        <h5><i class="fas fa-times-circle" style="color: #dc3545;"></i> Unavailable (${suggestion.participants.unavailable.length})</h5>
+                                        <div class="participant-list">${suggestion.participants.unavailable.map(p => `<span class="participant-chip unavailable" data-email="${p.userEmail}">${p.userName || p.userEmail.split('@')[0]}</span>`).join('')}</div>
+                                    </div>` : ''}
+                                </div>
+                                
+                                <div class="suggestion-actions">
+                                    <button type="button" class="toggle-details-btn" data-target="details-${index}">
+                                        <i class="fas fa-chevron-down" id="toggle-icon-${index}"></i> Show Details
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        suggestionsContainer.appendChild(document.createRange().createContextualFragment(suggestionHTML));
+                    });
+                    
+                    // Add event listeners for toggle details buttons
+                    document.querySelectorAll('.toggle-details-btn').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const targetId = this.getAttribute('data-target');
+                            const detailsElement = document.getElementById(targetId);
+                            const iconId = 'toggle-icon-' + targetId.split('-')[1];
+                            const icon = document.getElementById(iconId);
+                            
+                            if (detailsElement.style.display === 'none' || !detailsElement.style.display) {
+                                detailsElement.style.display = 'flex';
+                                this.innerHTML = `<i class="fas fa-chevron-up" id="${iconId}"></i> Hide Details`;
+                            } else {
+                                detailsElement.style.display = 'none';
+                                this.innerHTML = `<i class="fas fa-chevron-down" id="${iconId}"></i> Show Details`;
+                            }
+                        });
+                    });
+                    
+                    // Radio buttons now handle time selection directly
+                    document.querySelectorAll('input[name="meeting-suggestion"]').forEach(radio => {
+                        radio.addEventListener('change', function() {
+                            if (this.checked) {
+                                // Scroll to the bottom of the form to continue
+                                document.querySelector('.form-actions').scrollIntoView({ behavior: 'smooth' });
+                                
+                                // Notification functionality will be customized by the user
+                                // No notifications for time selection
+                            }
+                        });
+                    });
+                    
+                    // Show the suggestions section
+                    document.getElementById('meeting-suggestions').style.display = 'block';
+                } catch (error) {
+                    console.error('Error generating meeting suggestions:', error);
+                    const suggestionsContainer = document.getElementById('suggestions-container');
+                    suggestionsContainer.innerHTML = `<div class="error-message">
+                        <p>Error finding optimal meeting times: ${error.message}</p>
+                        <p>Please try again or select different participants/date.</p>
+                    </div>`;
+                }
+            }
+            
+            // Handle scheduling the selected meeting
+            document.getElementById('schedule-meeting').addEventListener('click', async function() {
+                try {
+                    const selectedSuggestion = document.querySelector('input[name="meeting-suggestion"]:checked');
+                    if (!selectedSuggestion) {
+                        alert('Please select a meeting time');
+                        return;
+                    }
+                    
+                    // Get the selected suggestion card
+                    const suggestionCard = selectedSuggestion.closest('.suggestion-card');
+                    const suggestionIndex = selectedSuggestion.id.split('-')[1];
+                    
+                    // Check if there are any unavailable participants
+                    const unavailableParticipants = suggestionCard.querySelectorAll('.participant-chip.unavailable');
+                    if (unavailableParticipants.length > 0) {
+                        // Get the names of unavailable participants
+                        const unavailableNames = Array.from(unavailableParticipants)
+                            .map(chip => chip.textContent.trim())
+                            .join(', ');
+                        
+                        // Show error message
+                        const errorMessage = `Cannot schedule meeting: ${unavailableNames} ${unavailableParticipants.length === 1 ? 'is' : 'are'} unavailable at this time. Please select a different time.`;
+                        
+                        alert(errorMessage);
+                        return;
+                    }
+
+                    const { day, time } = JSON.parse(selectedSuggestion.value);
+                    const title = document.getElementById('meeting-title').value;
+                    const description = document.getElementById('meeting-description').value;
+                    const duration = parseInt(document.getElementById('meeting-duration').value);
+
+                    // Get selected participants with availability status
+                    const selectedParticipants = [];
+                    document.querySelectorAll('input[name="participant"]:checked').forEach(input => {
+                        // Get participant availability from the suggestion card
+                        const participantEmail = input.value;
+                        const participantChip = suggestionCard.querySelector(`.participant-chip[data-email="${participantEmail}"]`);
+                        let availability = 'unknown';
+                        
+                        if (participantChip) {
+                            if (participantChip.classList.contains('available')) {
+                                availability = 'available';
+                            } else if (participantChip.classList.contains('if-needed')) {
+                                availability = 'if-needed';
+                            } else if (participantChip.classList.contains('unavailable')) {
+                                availability = 'unavailable';
+                            }
+                        }
+                        
+                        selectedParticipants.push({
+                            email: participantEmail,
+                            name: input.dataset.name,
+                            availability: availability
+                        });
+                    });
+
+                    // Use pure UTC time directly without local time conversion
+                    // Parse the date and time properly to avoid invalid date errors
+                    let startTime, endTime;
+                    try {
+                        console.log('Parsing date:', day, 'and time:', time);
+                        
+                        // Check if day is already a Date object
+                        if (typeof day === 'string') {
+                            // Handle different date formats
+                            let dateObj;
+                            
+                            if (day.includes('-')) {
+                                // Format: YYYY-MM-DD
+                                const [year, month, date] = day.split('-').map(num => parseInt(num));
+                                dateObj = new Date(Date.UTC(year, month - 1, date, 0, 0, 0));
+                            } else {
+                                // Try to parse the date string directly
+                                dateObj = new Date(day);
+                                // Ensure it's treated as UTC
+                                dateObj = new Date(Date.UTC(
+                                    dateObj.getFullYear(),
+                                    dateObj.getMonth(),
+                                    dateObj.getDate(),
+                                    0, 0, 0
+                                ));
+                            }
+                            
+                            // Validate date object
+                            if (isNaN(dateObj.getTime())) {
+                                throw new Error('Invalid date format: ' + day);
+                            }
+                            
+                            // Parse time (HH:MM or HH:MM AM/PM)
+                            let hours = 0, minutes = 0;
+                            
+                            if (time.includes(':')) {
+                                let timeParts = time.split(':');
+                                hours = parseInt(timeParts[0]);
+                                
+                                // Handle minutes with AM/PM
+                                if (timeParts[1].includes(' ')) {
+                                    let minuteAndPeriod = timeParts[1].split(' ');
+                                    minutes = parseInt(minuteAndPeriod[0]);
+                                    
+                                    // Adjust hours for PM
+                                    if (minuteAndPeriod[1].toUpperCase() === 'PM' && hours < 12) {
+                                        hours += 12;
+                                    }
+                                    // Adjust hours for AM
+                                    if (minuteAndPeriod[1].toUpperCase() === 'AM' && hours === 12) {
+                                        hours = 0;
+                                    }
+                                } else {
+                                    minutes = parseInt(timeParts[1]);
+                                }
+                            }
+                            
+                            // Create the UTC date with the time
+                            startTime = new Date(Date.UTC(
+                                dateObj.getUTCFullYear(),
+                                dateObj.getUTCMonth(),
+                                dateObj.getUTCDate(),
+                                hours,
+                                minutes,
+                                0
+                            ));
+                        } else {
+                            throw new Error('Invalid date format');
+                        }
+                        
+                        console.log('Created pure UTC start time:', startTime);
+                        console.log('UTC ISO string:', startTime.toISOString());
+                        
+                        // Validate the date is valid
+                        if (isNaN(startTime.getTime())) {
+                            throw new Error('Invalid date created');
+                        }
+                        
+                        // Calculate end time in UTC
+                        endTime = new Date(startTime.getTime() + duration * 60000);
+                        console.log('Created pure UTC end time:', endTime);
+                        console.log('UTC ISO string:', endTime.toISOString());
+                    } catch (error) {
+                        console.error('Error parsing date/time:', error);
+                        alert('Invalid date or time format. Please try again. Details: ' + error.message);
+                        return;
+                    }
+
+                    const meetingData = {
+                        title,
+                        description,
+                        startTime: startTime.toISOString(),
+                        endTime: endTime.toISOString(),
+                        participants: selectedParticipants
+                    };
+
+                    console.log('Creating meeting with data:', meetingData);
+
+                    // Show loading indicator
+                    const scheduleButton = document.getElementById('schedule-meeting');
+                    const originalButtonText = scheduleButton.textContent;
+                    scheduleButton.disabled = true;
+                    scheduleButton.textContent = 'Scheduling...';
+
+                    const response = await fetch('http://localhost:3001/api/meetings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(meetingData)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to create meeting');
+                    }
+
+                    const result = await response.json();
+                    console.log('Meeting created:', result);
+
+                    // Check if any participants need to confirm
+                    const ifNeededParticipants = selectedParticipants.filter(p => p.availability === 'if-needed');
+                    
+                    // Try to fetch notifications before redirecting
+                    try {
+                        await fetchNotifications();
+                        console.log('Notifications refreshed after meeting creation');
+                    } catch (notificationError) {
+                        console.error('Error fetching notifications:', notificationError);
+                        // Continue with the flow even if notifications fail
+                    }
+                    
+                    if (ifNeededParticipants.length > 0) {
+                        // Some participants need to confirm
+                        const names = ifNeededParticipants.map(p => p.name || p.email).join(', ');
+                        alert(`Meeting scheduled! Waiting for confirmation from: ${names}`);
+                    } else {
+                        // All participants are available or the organizer
+                        alert('Meeting scheduled successfully!');
+                    }
+                    
+                    // Always redirect back to meetings page after creating a meeting
+                    console.log('Redirecting to meetings page after scheduling');
+                    window.location.href = 'meetings.html';
+                } catch (error) {
+                    console.error('Error scheduling meeting:', error);
+                    alert('Failed to schedule meeting. Please try again.');
+                    
+                    // Reset button state
+                    const scheduleButton = document.getElementById('schedule-meeting');
+                    scheduleButton.disabled = false;
+                    scheduleButton.textContent = 'Schedule Meeting';
+                }
+            });
+        });
+        
+        // Initialize notifications when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeNotifications();
+        });
+        
+        // Function to fetch notifications
+        async function fetchNotifications() {
+            try {
+                const response = await fetch('http://localhost:3001/api/notifications', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch notifications');
+                }
+                
+                const notifications = await response.json();
+                updateNotificationBadge(notifications);
+                updateNotificationList(notifications);
+                return notifications;
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+                return [];
+            }
+        }
+    </script>
+    <script src="notifications.js"></script>
+</body>
+</html>

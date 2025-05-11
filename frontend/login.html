@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Schedulink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1><i class="fas fa-calendar-check"></i> Schedulink</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="register.html">Register</a></li>
+                    <li><a href="login.html" class="active">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="form-container">
+                <h2 class="form-title">Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="divider">OR</div>
+                    </div>
+
+                    <div class="form-group">
+                        <a href="/api/auth/google" class="btn btn-google" style="width: 100%; background-color: #4285F4; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" alt="Google logo" style="width: 18px; height: 18px;">
+                            Login with Google
+                        </a>
+                    </div>
+
+                    <p class="text-center">
+                        Don't have an account? <a href="register.html">Register here</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Schedulink. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+    <script>
+        // Check for Google auth response in URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const googleAuth = urlParams.get('google_auth');
+            const token = urlParams.get('token');
+            const calendarToken = urlParams.get('calendar_token');
+            
+            if (googleAuth === 'success' && token) {
+                // Store the JWT token
+                localStorage.setItem('token', token);
+                
+                // If we have a calendar token, store it too
+                if (calendarToken) {
+                    localStorage.setItem('calendar_token', calendarToken);
+                }
+                
+                // Fetch user data using the token
+                fetch('/api/auth/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    // Clean URL and redirect to schedule page
+                    window.location.href = 'schedule.html';
+                })
+                .catch(error => {
+                    console.error('Error fetching user data:', error);
+                    // Still redirect to schedule page even if user data fetch fails
+                    window.location.href = 'schedule.html';
+                });
+            } else if (googleAuth === 'error') {
+                alert('Google authentication failed. Please try again.');
+                // Clean URL
+                const url = new URL(window.location.href);
+                url.search = '';
+                window.history.replaceState({}, document.title, url.toString());
+            }
+        });
+        
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = 'schedule.html';
+                } else {
+                    const data = await response.json();
+                    alert(data.message || 'Login failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred during login. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
